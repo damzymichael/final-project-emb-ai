@@ -1,27 +1,50 @@
-import unittest
-from emotion_detection import emotion_detector
+"""
+This module acts as the Flask web server for the Emotion Detection application.
+It handles incoming HTTP requests, processes text using the EmotionDetection package,
+and returns the formatted analysis results to the user interface.
+"""
 
-class TestEmotionDetection(unittest.TestCase):
-    def test_emotion_detector(self):
-        # Test case 1: Joy
-        result_1 = emotion_detector("I am glad this happened")
-        self.assertEqual(result_1['dominant_emotion'], 'joy')
+from flask import Flask, render_template, request
+from EmotionDetection.emotion_detection import emotion_detector
 
-        # Test case 2: Anger
-        result_2 = emotion_detector("I am really mad about this")
-        self.assertEqual(result_2['dominant_emotion'], 'anger')
+# Initialize the Flask application
+app = Flask(__name__)
 
-        # Test case 3: Disgust
-        result_3 = emotion_detector("I feel disgusted just hearing about this")
-        self.assertEqual(result_3['dominant_emotion'], 'disgust')
+@app.route("/emotionDetector")
+def sent_detector():
+    """
+    Receives text via the 'textToAnalyze' query parameter,
+    runs the emotion detection function, checks for blank/invalid inputs,
+    and returns the formatted result string or error message.
+    """
+    text_to_analyze = request.args.get('textToAnalyze')
 
-        # Test case 4: Sadness
-        result_4 = emotion_detector("I am so sad about this")
-        self.assertEqual(result_4['dominant_emotion'], 'sadness')
+    # Pass text to the emotion detection function
+    response = emotion_detector(text_to_analyze)
 
-        # Test case 5: Fear
-        result_5 = emotion_detector("I am really afraid that this will happen")
-        self.assertEqual(result_5['dominant_emotion'], 'fear')
+    # Handle error case when dominant_emotion is None (blank entries)
+    if response['dominant_emotion'] is None:
+        return "Invalid text! Please try again!"
 
-if __name__ == '__main__':
-    unittest.main()
+    anger = response['anger']
+    disgust = response['disgust']
+    fear = response['fear']
+    joy = response['joy']
+    sadness = response['sadness']
+    dominant_emotion = response['dominant_emotion']
+
+    return (
+        f"For the given statement, the system response is 'anger': {anger}, "
+        f"'disgust': {disgust}, 'fear': {fear}, 'joy': {joy} and "
+        f"'sadness': {sadness}. The dominant emotion is {dominant_emotion}."
+    )
+
+@app.route("/")
+def render_index_page():
+    """
+    Renders the main index web page for the application interface.
+    """
+    return render_template('index.html')
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
